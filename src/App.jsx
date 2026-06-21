@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, onSnapshot, query } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 function App() {
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState('');
 
+  // Чтение задач из базы данных
   useEffect(() => {
     const q = query(collection(db, 'todos'));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -18,6 +19,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  // Добавление новой задачи
   const addTask = async (e) => {
     e.preventDefault();
     if (newTask === '') return;
@@ -26,6 +28,18 @@ function App() {
       completed: false,
     });
     setNewTask('');
+  };
+
+  // Переключение статуса (выполнено/не выполнено)
+  const toggleComplete = async (task) => {
+    await updateDoc(doc(db, 'todos', task.id), {
+      completed: !task.completed
+    });
+  };
+
+  // Удаление задачи
+  const deleteTask = async (id) => {
+    await deleteDoc(doc(db, 'todos', id));
   };
 
   return (
@@ -48,11 +62,19 @@ function App() {
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {tasks.map(task => (
           <li key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', padding: '10px', border: '1px solid #eee', borderRadius: '4px', background: '#fff' }}>
-            <input type="checkbox" checked={task.completed} readOnly />
+            <input 
+              type="checkbox" 
+              checked={task.completed} 
+              onChange={() => toggleComplete(task)} 
+              style={{ cursor: 'pointer' }}
+            />
             <span style={{ flex: 1, textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? '#999' : '#000' }}>
               {task.text}
             </span>
-            <button style={{ padding: '5px 10px', background: '#ff4d4f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+            <button 
+              onClick={() => deleteTask(task.id)}
+              style={{ padding: '5px 10px', background: '#ff4d4f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            >
               Удалить
             </button>
           </li>
